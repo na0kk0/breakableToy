@@ -38,7 +38,7 @@ function TaskTable(){
     })
 
     return(
-        <div>
+        <div data-testid="TaskTable">
         <div className="shadow-lg rounded-md overflow-hidden mx-2 md:mx-10 mt-4">
             <div className="max-h-[450px] overflow-y-auto">
             <table className="w-full table-fixed">
