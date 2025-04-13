@@ -20,7 +20,7 @@ function SearchFilterControls() {
         setTimeout(() => { setAnimationClass("flex items-center gap-1 text-xl font-bold bg-blue-400 py-1 px-2 hover:bg-blue-600 rounded-md border-2 border-white hover:border-white hover:text-white transition duration-200") }, 500);
     }
     return(
-        <div className="flex flex-col bg-gray-300 w-full py-6 px-5 my-5 mx-6 border-4 rounded-lg border-white shadow-lg" id="search-filter">
+        <div className="flex flex-col bg-gray-300 w-full py-6 px-5 my-5 mx-6 border-4 rounded-lg border-white shadow-lg" id="search-filter" data-testid="SearchFilter">
             <div className="flex flex-row justify-between w-full pb-2">
                 <span className="text-4xl">Name</span>
                 <input value={name} onChange={(e)=>{setName(e.target.value)}} autoComplete="off" id="name" type="text" placeholder="Text" maxLength={120} className="rounded-md text-2xl w-11/12 px-1" />
