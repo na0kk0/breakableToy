@@ -2,6 +2,92 @@
 
 This project was developed using React for the front-end and Java for the back-end (Spring boot).
 All the app run from the [App]("src/App.tsx) component and inside of it I put other components.
+
+# Breakable Toy Front-End
+
+This is the React/TypeScript front end for Breakable Toy, a full-stack to-do management app.
+
+---
+
+## Features
+
+- Add, edit, delete, and filter to-dos
+- Metrics panel for productivity insights
+- Accessible, responsive design (Tailwind CSS)
+- API integration with Spring Boot back end
+
+---
+
+## Architecture
+
+```mermaid
+graph TB
+    User["User"]
+    UI["React Components"]
+    State["React Context / Redux"]
+    API["REST API (fetch)"]
+
+    User --> UI
+    UI --> State
+    State --> API
+```
+
+---
+
+## Local Setup
+
+```bash
+npm install
+npm start
+```
+
+- The app runs on [http://localhost:3000](http://localhost:3000) by default.
+- You may need to adjust the API base URL.
+
+---
+
+## Testing
+
+```bash
+npm test
+```
+
+---
+
+## Environment Variables
+
+```
+REACT_APP_API_URL=http://localhost:8080/api
+```
+
+---
+
+## Scripts
+
+- `npm start` — Start dev server
+- `npm test` — Run tests
+- `npm run build` — Production build
+
+---
+
+## Folder Structure
+
+```
+src/
+  components/
+  context/
+  hooks/
+  App.tsx
+  index.tsx
+```
+
+---
+
+## Learn More
+
+- [React documentation](https://react.dev/)
+- [Tailwind CSS](https://tailwindcss.com/)
+
 # Components breakdown
 ## Search Filter Controls
 Is the top of the app. Here you can search the tasks that exist in the database (well, were not using a database right now, it's just a list in the api).
@@ -26,10 +112,6 @@ It shows you the average time that takes you to complete your tasks (all tasks a
 ## React Context
 I decided to use React context, that way I can access the task data from anywhere in the app (avoiding the <i>prop drilling</i>).
 In this context I interact with the api and with the data (some process are controlled by this app, other ones are made on the api)... (Also because Redux is harder than this...).
-## Validations
-Most of the validations for the tasks (the name is required, the priority is required, etc.) are made here, in the React app, so they are not required in the api.
-Anyway, I also wrote some validations in the api, but the data should be sent ready to be stored. 
-
 
 ## Available Scripts
 
