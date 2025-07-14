@@ -1,4 +1,4 @@
-import React, {useContext} from 'react';
+import React from 'react';
 import {TaskContext} from "../../context/taskContext";
 import {TasksContextType, Task} from "../../@types/task";
 import TaskTableRow from "./TaskTableRow";
@@ -10,32 +10,52 @@ import { FaAngleLeft } from "react-icons/fa6";
 
 
 function TaskTable(){
-    const {tasks, sortPriorityUp, sortPriorityDown, sortDueDateUp, sortDueDateDown, checkPage} = React.useContext(TaskContext) as TasksContextType;
+
+    const {tasks,
+        fetchTasks,
+        totalPages,
+        sortPriorityUp,
+        sortPriorityDown,
+        sortDueDateUp,
+        sortDueDateDown,
+        checkPage,
+    } = React.useContext(TaskContext) as TasksContextType;
+
     const[openMetrics, setOpenMetrics] = React.useState<boolean>(false);
     const closeMetrics = () => setOpenMetrics(false);
     const[priorityFilter, setPriorityFilter] = React.useState("");
     const[dueDateFilter, setDueDateFilter] = React.useState("");
-    const[pages, setPages] = React.useState(0);
+    const [sortMode, setSortMode] = React.useState<"none" | "priorityUp" | "priorityDown" | "dueDateUp" | "dueDateDown">("none");
     const[page, setPage] = React.useState(1);
     const[allDone, setAllDone] = React.useState(false);
+
     React.useEffect(() => {
-        setPages(Math.ceil(tasks.length / 10));
-    }, [tasks]);
-    React.useEffect(()=>{
-        setAllDone(false);
-        if(tasks.length > 0){
-            let flag:boolean=true;
-            tasks.slice((page*10)-10, (page*10)).forEach((task: Task) => {
-                if(!task.completed)
-                {
-                    flag = false;
-                }
-            })
-            if(flag){
-                setAllDone(true);
-            }
+        switch (sortMode){
+            case "priorityUp":
+                sortPriorityUp(page-1);
+                break;
+            case "priorityDown":
+                sortPriorityDown(page-1);
+                break;
+            case "dueDateUp":
+                sortDueDateUp(page-1);
+                break;
+            case "dueDateDown":
+                sortDueDateDown(page-1);
+                break;
+            default:
+                fetchTasks(page-1, 10);
+                break;
+
         }
-    })
+    }, [page, sortMode]);
+
+    React.useEffect(()=>{
+        if(tasks.length > 0){
+            const allCompleted = tasks.every((task) => task.completed);
+            setAllDone(allCompleted);
+        }
+    }, [tasks]);
 
     return(
         <div data-testid="TaskTable">
@@ -44,33 +64,40 @@ function TaskTable(){
             <table className="w-full table-fixed">
                 <thead>
                     <tr className="bg-gray-100">
-                        <th className="w-1/6 py-4 px-6 text-left text-gray-600 font-bold uppercase text-center"><input onChange={()=>{checkPage(allDone,setAllDone, page)}} checked={allDone} className="transform scale-150" type="checkbox"/></th>
+                        <th className="w-1/6 py-4 px-6 text-left text-gray-600 font-bold uppercase text-center">
+                            <input
+                                onChange={()=>checkPage(allDone, setAllDone, page)}
+                               checked={allDone}
+                               className="transform scale-150"
+                               type="checkbox"
+                            />
+                        </th>
                         <th className="w-1/3 py-4 px-6 text-left text-gray-600 font-bold uppercase">Name</th>
                         <th className="w-1/6 py-4 px-6 text-left text-gray-600 font-bold uppercase">Priority
                             {priorityFilter === "" || priorityFilter === "Low" ? (
                                 <button className="ml-2" onClick={()=> {
-
                                     setPriorityFilter("High")
-                                    sortPriorityUp()
+                                    setSortMode("priorityUp");
                                 }}>{IoIosArrowUp({})}</button>
                             ) : (
                                 <button className="ml-2" onClick={()=>{
 
                                     setPriorityFilter("Low")
-                                    sortPriorityDown()
+                                    setSortMode("priorityDown");
                                 }}>{IoIosArrowDown({})}</button>
                             )}
                         </th>
-                        <th className="w-1/6 py-4 px-6 text-left text-gray-600 font-bold uppercase">Due Date
+                        <th className="w-1/6 py-4 px-6 text-left text-gray-600 font-bold uppercase">
+                            Due Date
                             {dueDateFilter === "" || dueDateFilter === "Low" ? (
                                 <button className="ml-2" onClick={()=> {
-                                    sortDueDateUp()
                                     setDueDateFilter("High")
+                                    setSortMode("dueDateUp");
                                 }}>{IoIosArrowUp({})}</button>
                             ) : (
                                 <button className="ml-2" onClick={()=>{
-                                    sortDueDateDown()
                                     setDueDateFilter("Low")
+                                    setSortMode("dueDateDown");
                                 }}>{IoIosArrowDown({})}</button>
                             )}
                         </th>
@@ -79,10 +106,14 @@ function TaskTable(){
             </thead>
 
                 <tbody className="bg-white">
-                    {tasks.length === 0 || !tasks ? (
-                        <tr></tr>
+                    {tasks.length === 0 || tasks === null ? (
+                        <tr>
+                            <td colSpan={5} className="text-center py-4">No tasks</td>
+                        </tr>
                     ) : (
-                        tasks.slice((page*10)-10, (page*10)).map((task: Task) => (<TaskTableRow key={task.id} task={task} />)
+                        tasks.map((task: Task) => (
+                            <TaskTableRow key={task.id} task={task} page={page}/>
+                        )
                     ))}
                 </tbody>
 
@@ -91,14 +122,20 @@ function TaskTable(){
         </div>
         <div className="flex justify-center w-full pt-8 relative">
             <div className="flex justify-center bg-gray-100 w-auto text-xl px-4 rounded-md gap-4">
-                <button onClick={()=>{if(page > 1) setPage(page-1)}} className="text-balck hover:text-gray-400 transition duration-200">{FaAngleLeft({})}</button>
-                {Array.from({ length: pages }, (_, i) => i + 1).map((num) => (
-                    <button key={num} onClick={()=>{setPage(num)}} className={page === num ? "mx-1 px-2 py-1 rounded-md bg-gray-200":"mx-1 px-2 py-1 rounded-md hover:text-gray-400 transition duration-200"}>{num}</button>
+                <button onClick={()=>setPage(p=> Math.max(1, p-1))} className="text-balck hover:text-gray-400 transition duration-200">
+                    {FaAngleLeft({})}
+                </button>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((num) => (
+                    <button key={num} onClick={()=>{setPage(num)}} className={page === num ? "mx-1 px-2 py-1 rounded-md bg-gray-200":"mx-1 px-2 py-1 rounded-md hover:text-gray-400 transition duration-200"}>
+                        {num}
+                    </button>
                 ))}
-                <button onClick={()=>{if(page<(pages)) setPage(page+1)}} className="text-balck hover:text-gray-400 transition duration-200">{FaAngleRight({})}</button>
+                <button onClick={()=>setPage(p => Math.min(totalPages, p+1))} className="text-balck hover:text-gray-400 transition duration-200">{FaAngleRight({})}</button>
             </div>
-            {pages !== 0 ? (<div className="flex absolute right-10">
-                <button onClick={()=>{setOpenMetrics(true)}} className="whitespace-nowrap bg-violet-400 px-2 py-1 rounded-md border-white border-2 font-semibold hover:text-white transition duration-200">Show metrics</button>
+            {totalPages !== 0 ? (<div className="flex absolute right-10">
+                <button onClick={()=>{setOpenMetrics(true)}} className="whitespace-nowrap bg-violet-400 px-2 py-1 rounded-md border-white border-2 font-semibold hover:text-white transition duration-200">
+                    Show metrics
+                </button>
                 <PanelMetrics openMetrics={openMetrics} closeMetrics={closeMetrics} setOpenMetrics={setOpenMetrics} />
             </div>):(<div></div>)}
         </div>

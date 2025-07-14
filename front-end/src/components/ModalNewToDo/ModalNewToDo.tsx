@@ -8,17 +8,19 @@ interface ModalProps {
     addToDo: (todo: string) => void;
 }
 
-function ModalNewToDo({ isOpen, closeModal, addToDo }: ModalProps) {
+const initialFormState: Task = {
+    id: 0,
+    title: "",
+    dueDate: "",
+    completed: false,
+    doneDate: "",
+    priority: "High",
+    createDate: ""
+};
+
+function ModalNewToDo({ isOpen, closeModal }: ModalProps) {
     const { saveTask } = React.useContext(TaskContext) as TasksContextType;
-    const [formData, setFormData] = React.useState<Task>({
-        id: 0,
-        title: "",
-        dueDate: "",
-        completed: false,
-        doneDate: "",
-        priority: "High",
-        createDate: ""
-    });
+    const [formData, setFormData] = React.useState<Task>(initialFormState);
 
     const [animationClass, setAnimationClass] = React.useState("opacity-0 scale-90");
 
@@ -30,14 +32,17 @@ function ModalNewToDo({ isOpen, closeModal, addToDo }: ModalProps) {
         }
     }, [isOpen]);
 
-    const handleForm = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>): void => {
-        let value = e.target.value;
-        if (e.target.type === "date") {
-            value = new Date(value).toLocaleString();
-        }
-        setFormData(prev => ({
+    const handleForm = (
+        e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+    ): void => {
+        const { id, value, type } = e.target;
+
+        setFormData((prev:any) => ({
             ...prev,
-            [e.target.id]: value
+            [id]:
+                type === "date"
+                    ? new Date(value).toISOString()
+                    : value
         }));
     };
 
@@ -45,16 +50,12 @@ function ModalNewToDo({ isOpen, closeModal, addToDo }: ModalProps) {
 
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>, formData: Task) => {
         e.preventDefault();
+        if(!formData.title.trim()){
+            alert("Please enter a title");
+            return;
+        }
         saveTask(formData);
-        setFormData({
-            id: 0,
-            title: "",
-            dueDate: "",
-            completed: false,
-            doneDate: "",
-            priority: "High",
-            createDate: ""
-        });
+        setFormData(initialFormState);
         closeModal();
     };
 

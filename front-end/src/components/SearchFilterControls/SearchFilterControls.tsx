@@ -1,14 +1,14 @@
-import React, {useContext, useState} from 'react';
+import React, {useState} from 'react';
 import { IoSearch } from "react-icons/io5";
 import { IoList } from "react-icons/io5";
 
-import {TasksContextType, Task} from "../../@types/task";
+import {TasksContextType} from "../../@types/task";
 
 
 import DropdownMenu from "../DropdownMenu/DropdownMenu";
 import {TaskContext} from "../../context/taskContext";
 function SearchFilterControls() {
-    const {tasks, searchTask, getTasks} = React.useContext(TaskContext) as TasksContextType;
+    const {searchTask, fetchTasks} = React.useContext(TaskContext) as TasksContextType;
     const [priority, setPriority] = useState<string>("");
     const[state, setState] = useState<string>("");
     const[name, setName] = useState<string>("");
@@ -36,10 +36,22 @@ function SearchFilterControls() {
                 <div className="px-12 content-center z-20">
                     <DropdownMenu type={"state"} onChange={setState} />
                 </div>
-                <button onClick={()=>{getTasks()
-                    setName("")
-                    }} className="flex items-center gap-1 ml-auto text-xl font-bold bg-yellow-200 py-1 px-2 hover:bg-yellow-400 rounded-md border-2 border-white hover:border-white hover:text-white mr-4 transition duration-200">List all {IoList({})}</button>
-                <button onClick={()=>{name !== "" || priority !== "" || state !== "" ? searchTask(name, priority, state): animationSearch()}} className={animationClass}>Search {IoSearch({})}</button>
+                <button onClick={()=>{
+                    fetchTasks(0);
+                    setName("");
+                    }}
+                        className="flex items-center gap-1 ml-auto text-xl font-bold bg-yellow-200 py-1 px-2 hover:bg-yellow-400 rounded-md border-2 border-white hover:border-white hover:text-white mr-4 transition duration-200">
+                    List all {IoList({})}
+                </button>
+                <button
+                    onClick={()=> {
+                        name !== "" || priority !== "" || state !== ""
+                            ? searchTask(name, priority, state)
+                            : animationSearch()
+                    }}
+                    className={animationClass}>
+                    Search {IoSearch({})}
+                </button>
             </div>
         </div>
     )

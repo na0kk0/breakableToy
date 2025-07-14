@@ -1,69 +1,98 @@
 package com.naokko.todo.controllers;
 
-
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.naokko.todo.models.MetricsResponse;
 import com.naokko.todo.models.Task;
+import com.naokko.todo.services.TaskService;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
-import static org.hamcrest.Matchers.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import java.util.*;
+
+import static org.mockito.ArgumentMatchers.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(TaskController.class)
-@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 class TaskControllerTest {
+
     @Autowired
     private MockMvc mockMvc;
 
+    @MockBean
+    private TaskService taskService;
+
     @Test
-    void getTasksShouldReturnEmptyListInitially() throws Exception {
-        mockMvc.perform(get("/todos")).andExpect(status().isOk()).andExpect(jsonPath("$", empty()));
-    }
-    @Test
-    void addTaskShouldReturnListWithTheNewTask() throws Exception {
+    void testGetAllTasks() throws Exception {
         Task task = new Task();
         task.setId(1);
         task.setTitle("Test");
-        task.setDueDate("01-05-2020");
-        task.setCompleted(false);
-        task.setDoneDate("");
-        task.setPriority("High");
-        task.setCreateDate("01-01-2020");
+        Page<Task> page = new PageImpl<>(List.of(task));
 
-        mockMvc.perform(post("/todos").contentType("application/json").content(new ObjectMapper().writeValueAsString(task)))
-                .andExpect(status().isOk()).andExpect(jsonPath("$", hasSize(1))).andExpect(jsonPath("$[0].id", is(1)))
-                .andExpect(jsonPath("$[0].title", is("Test"))).andExpect(jsonPath("$[0].dueDate", is("01-05-2020")))
-                .andExpect(jsonPath("$[0].completed", is(false))).andExpect(jsonPath("$[0].doneDate", is("")))
-                .andExpect(jsonPath("$[0].priority", is("High"))).andExpect(jsonPath("$[0].createDate", is("01-01-2020")));
+        Mockito.when(taskService.getTasks(0, 10)).thenReturn(page);
+
+        mockMvc.perform(get("/todos"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].title").value("Test"));
     }
+
     @Test
-    void sortByPriorityDownShouldReturnListWithTheTasksSorted() throws Exception {
+    void testAddTask() throws Exception {
+        Task task = new Task();
+        task.setTitle("Test");
+        Mockito.when(taskService.saveTask(any(Task.class))).thenReturn(task);
+
+        mockMvc.perform(post("/todos")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(new ObjectMapper().writeValueAsString(task)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.title").value("Test"));
+    }
+
+    @Test
+    void testSortByPriorityUp() throws Exception {
+        Map<String, Object> result = Map.of("content", List.of(), "totalPages", 1);
+        Mockito.when(taskService.getTasksSortedByPriority(true, 0, 10)).thenReturn(result);
+
+        mockMvc.perform(get("/todos/sortPriorityUp"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalPages").value(1));
+    }
+
+    @Test
+    void testUpdateTaskCompletionFound() throws Exception {
         Task task = new Task();
         task.setId(1);
-        task.setTitle("Test");
-        task.setDueDate("01-05-2020");
-        task.setCompleted(false);
-        task.setDoneDate("");
-        task.setPriority("High");
-        task.setCreateDate("01-01-2020");
+        task.setCompleted(true);
+        Mockito.when(taskService.updateTaskCompletion(1, true)).thenReturn(task);
 
-        Task task2 = new Task();
-        task2.setId(2);
-        task2.setTitle("Test");
-        task2.setDueDate("01-05-2020");
-        task2.setCompleted(false);
-        task2.setDoneDate("");
-        task2.setPriority("Low");
-        task2.setCreateDate("01-01-2020");
+        mockMvc.perform(patch("/todos/1/complete?completed=true"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.completed").value(true));
+    }
 
-        mockMvc.perform(post("/todos").contentType("application/json").content(new ObjectMapper().writeValueAsString(task)));
-        mockMvc.perform(post("/todos").contentType("application/json").content(new ObjectMapper().writeValueAsString(task2)));
-        mockMvc.perform(get("/todos/sortPriorityDown")).andExpect(status().isOk()).andExpect(jsonPath("$", hasSize(2)))
-                .andExpect(jsonPath("$[0].id", is(2)));
+    @Test
+    void testUpdateTaskCompletionNotFound() throws Exception {
+        Mockito.when(taskService.updateTaskCompletion(1, true)).thenThrow(new NoSuchElementException());
+
+        mockMvc.perform(patch("/todos/1/complete?completed=true"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void testGetMetrics() throws Exception {
+        MetricsResponse metrics = new MetricsResponse(10, 5, 7, 3);
+        Mockito.when(taskService.calculateMetrics()).thenReturn(metrics);
+
+        mockMvc.perform(get("/todos/metrics"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.averageTime").value(10));
     }
 }

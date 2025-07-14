@@ -6,9 +6,10 @@ interface ModalProps {
     isOpen: boolean;
     closeModal: () => void;
     taskToEdit : Task;
+    page: number;
 }
 
-function ModalEditToDo({ isOpen, closeModal, taskToEdit }: ModalProps){
+function ModalEditToDo({ isOpen, closeModal, taskToEdit, page }: ModalProps){
     const { editTask } = React.useContext(TaskContext) as TasksContextType;
     const [animationClass, setAnimationClass] = React.useState("opacity-0 scale-90");
 
@@ -33,7 +34,7 @@ function ModalEditToDo({ isOpen, closeModal, taskToEdit }: ModalProps){
     const handleForm = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>): void => {
         let value = e.target.value;
         if (e.target.type === "date" && value !== "") {
-            value = new Date(value).toLocaleString();
+            value = new Date(value).toISOString();
         }
         setFormData(prev => ({
             ...prev,
@@ -56,8 +57,7 @@ function ModalEditToDo({ isOpen, closeModal, taskToEdit }: ModalProps){
 
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>, formData: Task) => {
         e.preventDefault();
-        console.log("Edited Task:",formData);
-        editTask(formData);
+        editTask(formData, page);
         closeModal();
     };
 
@@ -92,7 +92,7 @@ function ModalEditToDo({ isOpen, closeModal, taskToEdit }: ModalProps){
                         <div className="flex w-full bg-gray-400 items-center justify-between px-4 py-4 rounded-b-md">
                             <div className="flex flex-row w-full">
                                 <label htmlFor="new-to-do" className="text-2xl pr-2 text-center w-1/3">Due date</label>
-                                <input onChange={handleForm} type="date" value={formData.dueDate !== "" ? (new Date(formData.dueDate).toISOString().split("T")[0]) : ("")} placeholder="New To Do" className="w-1/3 pl-1 rounded-md" id="dueDate" />
+                                <input onChange={handleForm} type="date" value={formData.dueDate !== null ? (new Date(formData.dueDate).toISOString().split("T")[0]) : ("")} placeholder="New To Do" className="w-1/3 pl-1 rounded-md" id="dueDate" />
                             </div>
                             <div className="flex h-10 w-40">
                                 <button type="submit" className="bg-yellow-400 px-1 py-1 text-lg font-semibold rounded-md border-2 border-white w-full hover:font-semibold hover:bg-yellow-500 hover:text-white transition duration-200">

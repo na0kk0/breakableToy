@@ -2,201 +2,230 @@ import * as React from "react";
 import {TasksContextType, Task} from "../@types/task";
 import {useEffect} from "react";
 
+const BASE_URL = 'http://localhost:9090/todos';
+
 export const TaskContext = React.createContext<TasksContextType | null>(null);
 const TaskProvider: React.FC<{children: React.ReactNode}> = ({ children }) => {
     const [tasks, setTasks] = React.useState<Task[]>([]);
+    const [totalPages, setTotalPages] = React.useState<number>(0);
+    const [averageTime, setAverageTime] = React.useState<string>("");
+    const [averageTimePriority, setAverageTimePriority] = React.useState<{low:string, med:string, hi:string}>({low:"", med:"", hi:""});
     useEffect(() => {
-        fetch("http://localhost:9090/todos")
-            .then(res => res.json())
-            .then(data => {
-                setTasks(data);
-            })
-            .catch(err => console.error(err));
+        fetchTasks();
     }, [])
     const getIds = ():number[]=>{
         return tasks.map((task) => task.id);
     }
-    //This method is used to save the task directly on the api
-    const saveTask = (task: Task) => {
-        let id:number = Math.floor(Math.random() * 1000);
-        while(getIds().includes(id))
-        {
-            id = Math.floor(Math.random() * 1000);
-        }
+
+    const saveTask = async (task: Task) => {
         const newTask:Task = {
-            id: id,
-            title: task.title,
-            dueDate: task.dueDate,
-            completed: task.completed,
-            doneDate: task.doneDate,
-            priority: task.priority,
-            createDate: task.createDate,
-        }
-
-        const requestOptions = {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(
-                {
-                    "id": newTask.id,
-                    "title": newTask.title,
-                    "dueDate": newTask.dueDate,
-                    "completed": false,
-                    "doneDate": "",
-                    "priority": newTask.priority,
-                    "createDate": new Date().toLocaleString()
-                }
-            )
+            ...task,
+            id: 0,
+            completed: false,
+            doneDate: "",
+            createDate: new Date().toISOString(),
         };
-        fetch('http://localhost:9090/todos', requestOptions)
-            .then(response => response.json())
-            .then(data => setTasks(data));
-        console.log("This is the new Task:",newTask);
-    }
 
-    const sortPriorityUp = ()=>{
-        fetch("http://localhost:9090/todos/sortPriorityUp")
-            .then(res => res.json())
-            .then(data => {
-                setTasks(data);
-            })
-            .catch(err => console.error(err));
-    }
-
-    const sortPriorityDown = ()=>{
-        fetch("http://localhost:9090/todos/sortPriorityDown")
-            .then(res => res.json())
-            .then(data => {
-                setTasks(data);
-            })
-            .catch(err => console.error(err));
-    }
-
-    const sortDueDateUp = ()=>{
-        fetch("http://localhost:9090/todos/sortDueDateUp")
-            .then(res => res.json())
-            .then(data => {
-                setTasks(data);
-            })
-            .catch(err => console.error(err));
-    }
-
-    const sortDueDateDown = ()=>{
-        fetch("http://localhost:9090/todos/sortDueDateDown")
-            .then(res => res.json())
-            .then(data => {
-                setTasks(data);
-            })
-            .catch(err => console.error(err));
-    }
-
-    const editTask = (taskEdited:Task)=>{
-        const requestOptions = {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(
-                {
-                    "id": taskEdited.id,
-                    "title": taskEdited.title,
-                    "dueDate": taskEdited.dueDate !== "" ? taskEdited.dueDate : "",
-                    "completed": taskEdited.completed,
-                    "doneDate": taskEdited.doneDate,
-                    "priority": taskEdited.priority,
-                    "createDate": taskEdited.createDate,
-                }
-            )
-        };
-        fetch('http://localhost:9090/todos/'+taskEdited.id+'', requestOptions)
-            .then(response => response.json())
-            .then(data => setTasks(data));
-    }
-
-    const deleteTask = (id:number)=>{
-        const requestOptions = {
-            method: 'DELETE',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(
-                {
-                    "id": id
-                }
-            )
-        };
-        fetch('http://localhost:9090/todos/delete/'+id+'', requestOptions)
-            .then(response => response.json())
-            .then(data => setTasks(data));
-    }
-
-    const searchTask = (title:string, priority:string, state:string)=>{
-        const params = new URLSearchParams();
-        if(title)params.append("title", title);
-        if(priority)params.append("priority", priority);
-        if(state)params.append("state", state);
-        fetch("http://localhost:9090/todos/search?"+params.toString())
-            .then(res => res.json())
-            .then(data => {
-                setTasks(data);
-            })
-            .catch(err => console.error(err));
-    }
-
-    const getTasks=()=>{
-        fetch("http://localhost:9090/todos")
-            .then(res => res.json())
-            .then(data => {
-                setTasks(data);
-            })
-            .catch(err => console.error(err));
-    }
-
-    const completeTask =(id:number, completed:boolean)=>{//Actually it can also mark as un-complete
-        const requestOptions = {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(
-                {
-                    "id": id
-                }
-            )
-        };
-        if (!completed)
-        {
-            fetch('http://localhost:9090/todos/'+id+'/undone', requestOptions)
-                .then(response => response.json())
-                .then(data => setTasks(data));
-        }else
-        {
-            fetch('http://localhost:9090/todos/'+id+'/done', requestOptions)
-                .then(response => response.json())
-                .then(data => setTasks(data));
+        try{
+            const response = await fetch(BASE_URL, {
+               method: "POST",
+                headers:{
+                   "Content-Type": "application/json",
+                },
+                body: JSON.stringify(newTask),
+            });
+            if(!response.ok){
+                const errorData = await response.json();
+                console.error("Error saving the task", errorData);
+                return;
+            }
+            await fetchTasks();
+        }catch (error){
+            console.error("Error connecting to the backend", error);
         }
     }
 
-    const checkPage= async(allDone:boolean, setAllDone:(value:boolean)=>void, page:number)=>{
-        if(allDone)
-        {
-            if(tasks.length > 0){
-                await Promise.all(tasks.slice((page*10)-10, (page*10)).map((task: Task) => {completeTask(task.id, false)}))
-            }
-            const res = await fetch("http://localhost:9090/todos");
-            const updatedTasks = await res.json();
-            setTasks(updatedTasks);
+    const sortPriorityUp = async(page:number = 0)=>{
+        try {
+            const res = await fetch(`${BASE_URL}/sortPriorityUp?page=${page}&size=10`);
+            const data = await res.json();
+            setTasks(data.content);
+            setTotalPages(data.totalPages);
+        }catch (error){
+            console.error("Error sorting tasks by priority (up): ", error);
+        }
+    }
 
-            setAllDone(false);
-        }else if(!allDone)
-        {
-            if(tasks.length > 0){
-                await Promise.all(tasks.slice((page*10)-10, (page*10)).map((task: Task) => {completeTask(task.id, true)}))
-            }
-            const res = await fetch("http://localhost:9090/todos");
-            const updatedTasks = await res.json();
-            setTasks(updatedTasks);
+    const sortPriorityDown = async(page:number = 0)=>{
+        try {
+            const res = await fetch(`${BASE_URL}/sortPriorityDown?page=${page}&size=10`);
+            const data = await res.json();
+            setTasks(data.content);
+            setTotalPages(data.totalPages);
+        }catch (error){
+            console.error("Error sorting tasks by priority (down): ", error);
+        }
+    }
 
-            setAllDone(true);
+    const sortDueDateUp = async (page:number = 0)=>{
+        try {
+            const res = await fetch(`${BASE_URL}/sortDueDateUp?page=${page}&size=10`);
+            const data = await res.json();
+            setTasks(data.content);
+            setTotalPages(data.totalPages);
+        }catch (error){
+            console.error("Error sorting tasks by due date (up): ", error);
+        }
+    }
+
+    const sortDueDateDown = async(page:number = 0)=>{
+        try {
+            const res = await fetch(`${BASE_URL}/sortDueDateDown?page=${page}&size=10`);
+            const data = await res.json();
+            setTasks(data.content);
+            setTotalPages(data.totalPages);
+        }catch (error){
+            console.error("Error sorting tasks by due date (down): ", error);
+        }
+    }
+
+    const editTask = async(taskEdited:Task, page:number)=>{
+        try{
+            const response = await fetch(`${BASE_URL}/${taskEdited.id}`, {
+                method: "PUT",
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(taskEdited),
+            });
+            if(!response.ok){
+                throw new Error("Error updating task");
+            }
+
+            const updatedTask = await response.json();
+            fetchTasks(page-1);
+        }catch (error){
+            console.error("Error editing task: ", error);
+        }
+    }
+
+    const deleteTask = async(id:number, page:number)=>{
+        try{
+            const response = await fetch(`${BASE_URL}/delete/${id}`, {
+                method: "DELETE",
+            });
+            if(!response.ok){
+                throw new Error("Error deleting the task");
+            }
+            await fetchTasks(page-1);
+        }catch (error){
+            console.error("Error deleting task", error);
+        }
+    }
+
+    const searchTask = async(
+        title:string,
+        priority:string,
+        state:string,
+        page:number = 0,
+        size:number = 10
+    )=>{
+        try{
+            const params = new URLSearchParams();
+            if(title) params.append("title", title);
+            if(priority) params.append("priority", priority);
+            if(state) params.append("state", state);
+            params.append("page", page.toString());
+            params.append("size", size.toString());
+
+            const response = await fetch(`${BASE_URL}/search?${params.toString()}`);
+            if(!response.ok){
+                throw new Error("Error fetching search results");
+            }
+
+            const data = await response.json();
+            setTasks(data.content);
+            setTotalPages(data.totalPages);
+        }catch (error){
+            console.error("Search error: ", error);
+        }
+    }
+
+    const completeTask = async(id:number, completed:boolean): Promise<void> =>{
+        try{
+            await fetch(`${BASE_URL}/${id}/complete?completed=${completed}`,{
+                method: 'PATCH',
+            });
+        }catch(error){
+            console.error("Error updating task completion: ", error);
+        }
+    }
+
+    const checkPage= async(
+        allDone:boolean,
+        setAllDone:(value:boolean)=>void,
+        page:number
+    )=>{
+        if (tasks.length === 0) return;
+
+        const newCompletedStatus = !allDone;
+
+        await Promise.all(
+            tasks.map((task:Task) => completeTask(task.id, newCompletedStatus))
+        );
+
+        fetchTasks(page - 1, 10);
+        setAllDone(newCompletedStatus);
+    }
+
+    const fetchTasks = async(page = 0, size = 10) =>{
+        try{
+            const res = await fetch(`${BASE_URL}?page=${page}&size=${size}`);
+            const data = await res.json();
+
+            setTasks(data.content);
+            setTotalPages(data.totalPages);
+        }catch (error){
+            console.error("Error fetching tasks", error);
+        }
+    }
+
+    const fetchMetrics = async() => {
+        try {
+            const res = await fetch(`${BASE_URL}/metrics`);
+            if(!res.ok) throw new Error("Error fetching metrics");
+            const data = await res.json();
+
+            setAverageTime(data.averageTimeFormatted);
+            setAverageTimePriority({
+                low: data.lowPriorityFormatted,
+                med: data.mediumPriorityFormatted,
+                hi: data.highPriorityFormatted,
+            })
+        }catch (error){
+            console.error("Error fetching metrics: ", error);
         }
     }
 
     return(
-        <TaskContext.Provider value={{tasks, setTasks, saveTask, getIds, sortPriorityUp, sortPriorityDown, sortDueDateUp, sortDueDateDown, editTask, deleteTask, searchTask, getTasks, completeTask, checkPage}}>
+        <TaskContext.Provider value={{
+            tasks,
+            setTasks,
+            saveTask,
+            getIds,
+            sortPriorityUp,
+            sortPriorityDown,
+            sortDueDateUp,
+            sortDueDateDown,
+            editTask,
+            deleteTask,
+            searchTask,
+            completeTask,
+            checkPage,
+            fetchTasks,
+            fetchMetrics,
+            totalPages,
+            averageTime,
+            averageTimePriority,
+        }}>
             {children}
         </TaskContext.Provider>
     );

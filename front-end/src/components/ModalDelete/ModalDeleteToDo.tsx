@@ -5,10 +5,11 @@ import { TasksContextType, Task } from "../../@types/task";
 interface ModalProps {
     isOpen: boolean;
     closeModal: () => void;
-    taskToDelete : Task;
+    taskToDelete: Task;
+    page: number;
 }
 
-function ModalDeleteToDo({ isOpen, closeModal, taskToDelete }: ModalProps){
+function ModalDeleteToDo({ isOpen, closeModal, taskToDelete, page }: ModalProps){
     const { deleteTask } = React.useContext(TaskContext) as TasksContextType;
     const [animationClass, setAnimationClass] = React.useState("opacity-0 scale-90");
 
@@ -43,7 +44,7 @@ function ModalDeleteToDo({ isOpen, closeModal, taskToDelete }: ModalProps){
                         <div className="flex w-full bg-gray-400 items-center justify-center px-4 py-4 rounded-b-md">
                             <div className="flex h-10 w-40">
                                 <button onClick={()=>{
-                                    deleteTask(taskToDelete.id)
+                                    deleteTask(taskToDelete.id, page)
                                     closeModal()
                                 }} className="bg-red-500 px-1 text-lg font-bold rounded-md border-2 border-white w-full hover:font-semibold hover:bg-red-600 hover:text-white transition duration-200">
                                     Delete To Do
