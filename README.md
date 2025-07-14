@@ -20,7 +20,6 @@ Breakable Toy is a learning-focused project featuring a robust, full-stack to-do
 - React (TypeScript) for the front end
 - Spring Boot (Java, JPA, PostgreSQL/MySQL) for the back end
 - RESTful API for communication
-- Dockerized local development
 
 ---
 
